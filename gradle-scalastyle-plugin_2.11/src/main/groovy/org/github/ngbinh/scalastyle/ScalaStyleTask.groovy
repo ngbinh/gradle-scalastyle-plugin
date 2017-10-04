@@ -68,7 +68,7 @@ class ScalaStyleTask extends SourceTask {
                 if (testConfigLocation != null) {
                   def testConfiguration = ScalastyleConfiguration.readFromXml(testConfigLocation)
                   if (testConfiguration != null) {
-                      def testFilesToProcess = scalaStyleUtils.getTestFilesToProcess(source.getFiles().toList(), testSourceDir.getFiles().toList(), inputEncoding, includeTestSourceDirectory)
+                      def testFilesToProcess = scalaStyleUtils.getTestFilesToProcess(testSourceDir.getFiles().toList(), inputEncoding, includeTestSourceDirectory)
                       messages.addAll(scalaStyleUtils.checkFiles(testConfiguration, testFilesToProcess))
                   }
                 }
