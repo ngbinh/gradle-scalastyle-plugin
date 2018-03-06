@@ -75,7 +75,7 @@ class ScalaStyleTask extends SourceTask {
                 def outputResult = new TextOutput(config, verbose, quiet).output(messages)
 
                 project.getLogger().debug("Saving to outputFile={}", project.file(outputFile).getCanonicalPath());
-                XmlOutput.save(config, outputFile, outputEncoding, messages)
+                XmlOutput.save(config, project.file(outputFile), outputEncoding, messages)
 
                 def stopMs = System.currentTimeMillis()
                 if (!quiet) {
