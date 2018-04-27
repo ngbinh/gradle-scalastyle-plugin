@@ -1,7 +1,6 @@
 import org.github.ngbinh.scalastyle.ScalaStyleTask
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Test
 import spock.lang.Specification
 
 public class ScalaStylePluginTest extends Specification {
