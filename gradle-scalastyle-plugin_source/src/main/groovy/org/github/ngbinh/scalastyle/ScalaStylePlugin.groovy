@@ -34,6 +34,5 @@ class ScalaStylePlugin implements Plugin<Project> {
                 .setDescription('Scala Style libraries to be used for this project.')
 
         project.task(type: ScalaStyleTask, 'scalaStyle')
-        project.tasks.scalaStyle.outputs.upToDateWhen { false }
     }
 }
