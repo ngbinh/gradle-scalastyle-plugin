@@ -78,6 +78,26 @@ subprojects {
       }
   }
 
+  sourceSets {
+      main {
+          resources {
+              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/main/resources")])
+          }
+          scala {
+              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/main/scala")])
+          }
+          groovy {
+              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/main/groovy")])
+              compileClasspath += files([sourceSets.main.scala.outputDir])
+          }
+      }
+      test {
+          groovy {
+              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/test/groovy")])
+          }
+      }
+  }
+
   compileGroovy.dependsOn(compileScala)
 
   // Required for Sonatype
