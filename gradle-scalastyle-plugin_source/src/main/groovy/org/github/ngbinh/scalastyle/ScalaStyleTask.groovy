@@ -18,6 +18,9 @@
 package org.github.ngbinh.scalastyle
 
 import org.gradle.api.file.FileTree
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.TaskAction
 import org.scalastyle.ScalastyleConfiguration
@@ -34,6 +37,7 @@ class ScalaStyleTask extends SourceTask {
     File buildDirectory = project.buildDir
     String configLocation
     String testConfigLocation
+    @OutputFile
     String outputFile = buildDirectory.absolutePath + "/scala_style_result.xml"
     String outputEncoding = "UTF-8"
     Boolean failOnViolation = true
@@ -52,6 +56,21 @@ class ScalaStyleTask extends SourceTask {
         setDescription("Scalastyle examines your Scala code and indicates potential problems with it.")
     }
 
+    @InputFiles
+    @SkipWhenEmpty
+    List<File> getTestSourceFiles() {
+        if (includeTestSourceDirectory || testConfigLocation != null) {
+            if (testSource == null) {
+                testSourceDir = project.fileTree(project.projectDir.absolutePath + "/src/test/scala")
+            } else {
+                testSourceDir = project.fileTree(project.projectDir.absolutePath + "/" + testSource)
+            }
+            testSourceDir.files.toList()
+        } else {
+            Collections.emptyList()
+        }
+    }
+
     @TaskAction
     def scalaStyle() {
         extractAndValidateProperties()
@@ -59,13 +78,13 @@ class ScalaStyleTask extends SourceTask {
             try {
                 def startMs = System.currentTimeMillis()
                 def configuration = ScalastyleConfiguration.readFromXml(configLocation)
-                def fileToProcess = scalaStyleUtils.getFilesToProcess(source.files.toList(), testSourceDir.files.toList(), inputEncoding, includeTestSourceDirectory)
-                def messages = scalaStyleUtils.checkFiles(configuration, fileToProcess)
+                def filesToProcess = scalaStyleUtils.getFilesToProcess(source.files.toList(), testSourceFiles, inputEncoding, includeTestSourceDirectory)
+                def messages = scalaStyleUtils.checkFiles(configuration, filesToProcess)
 
                 if (testConfigLocation != null) {
                     def testConfiguration = ScalastyleConfiguration.readFromXml(testConfigLocation)
                     if (testConfiguration != null) {
-                        def testFilesToProcess = scalaStyleUtils.getTestFilesToProcess(testSourceDir.files.toList(), inputEncoding)
+                        def testFilesToProcess = scalaStyleUtils.getTestFilesToProcess(testSourceFiles, inputEncoding)
                         messages.addAll(scalaStyleUtils.checkFiles(testConfiguration, testFilesToProcess))
                     }
                 }
@@ -115,12 +134,6 @@ class ScalaStyleTask extends SourceTask {
 
         if (source == null) {
             throw new Exception("Specify Scala source set")
-        }
-
-        if (testSource == null) {
-            testSourceDir = project.fileTree(project.projectDir.absolutePath + "/src/test/scala")
-        } else {
-            testSourceDir = project.fileTree(project.projectDir.absolutePath + "/" + testSource)
         }
 
         if (testConfigLocation != null && !new File(testConfigLocation).exists()) {
