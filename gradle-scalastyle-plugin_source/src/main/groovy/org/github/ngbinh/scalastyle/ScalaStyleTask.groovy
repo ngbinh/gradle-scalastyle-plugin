@@ -31,10 +31,10 @@ import org.scalastyle.XmlOutput
  * @since 5/11/13
  */
 class ScalaStyleTask extends SourceTask {
-    File buildDirectory
+    File buildDirectory = project.buildDir
     String configLocation
     String testConfigLocation
-    String outputFile
+    String outputFile = buildDirectory.absolutePath + "/scala_style_result.xml"
     String outputEncoding = "UTF-8"
     Boolean failOnViolation = true
     Boolean failOnWarning = false
@@ -129,14 +129,6 @@ class ScalaStyleTask extends SourceTask {
 
         if (!new File(configLocation).exists()) {
             throw new Exception("configLocation " + configLocation + " does not exist")
-        }
-
-        if (buildDirectory == null) {
-            buildDirectory = project.buildDir
-        }
-
-        if (outputFile == null) {
-            outputFile = buildDirectory.absolutePath + "/scala_style_result.xml"
         }
 
         if (!skip && !project.file(outputFile).exists()) {
