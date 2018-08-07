@@ -27,91 +27,99 @@ version = projectVersion
 group = projectGroup
 
 // Define projects
-def twoTenProject = project(':gradle-scalastyle-plugin_2.10')
-def twoElevenProject = project(':gradle-scalastyle-plugin_2.11')
-def twoTwelveProject = project(':gradle-scalastyle-plugin_2.12')
+['2.10', '2.11', '2.12'].each { scalaVersion ->
+    project(":gradle-scalastyle-plugin_$scalaVersion") {
+        ext.scalaDist = scalaVersion
+    }
+}
 
-twoTenProject.ext.scalaDist = "2.10"
-twoElevenProject.ext.scalaDist = "2.11"
-twoTwelveProject.ext.scalaDist = "2.12"
+ext {
+    pluginSrc = "$rootDir/src"
+}
 
 task wrapper(type: Wrapper) {
-    gradleVersion = "4.7"
+    gradleVersion = '4.7'
 }
 
 subprojects {
-  apply plugin: "java"
-  apply plugin: "scala"
-  apply plugin: "groovy"
-  apply plugin: 'signing' // For pushing to Sonatype OSS Staging repository
-  apply plugin: 'com.jfrog.bintray'
-  apply plugin: 'maven-publish'
+    apply plugin: "java"
+    apply plugin: "scala"
+    apply plugin: "groovy"
+    apply plugin: 'signing' // For pushing to Sonatype OSS Staging repository
+    apply plugin: 'com.jfrog.bintray'
+    apply plugin: 'maven-publish'
 
-  // JRE 1.6 should work
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
+    // JRE 1.6 should work
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 
-  version = projectVersion
-  group = projectGroup
+    version = projectVersion
+    group = projectGroup
 
-  ext {
-      versions = [:]
-  }
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
 
-  versions.scalaDist = scalaDist
-  versions.scalaStyle = "1.0.0"
-  versions.junit = "4.11"
+    dependencies {
+        compile gradleApi()
+        compile localGroovy()
 
-  repositories {
-      mavenCentral()
-      jcenter()
-  }
+        compile "org.scalastyle:scalastyle_${scalaDist}:1.0.0"
+        testCompile gradleTestKit()
+        testCompile('org.spockframework:spock-core:1.1-groovy-2.4') {
+            exclude module: 'groovy-all'
+        }
+        testCompile 'commons-io:commons-io:2.5'
+    }
 
-  dependencies {
-      compile gradleApi()
-      compile localGroovy()
+    sourceSets {
+        main {
+            scala {
+                srcDirs = ["$pluginSrc/main/scala"]
+            }
+            groovy {
+                srcDirs = ["$pluginSrc/main/groovy"]
+                compileClasspath += files([sourceSets.main.scala.outputDir])
+            }
+            resources {
+                srcDirs = ["$pluginSrc/main/resources"]
+            }
+        }
+        test {
+            groovy {
+                srcDirs = ["$pluginSrc/test/groovy"]
+            }
+            resources {
+                srcDirs = ["$pluginSrc/test/resources"]
+            }
+        }
+    }
 
-      compile "org.scalastyle:scalastyle_${versions.scalaDist}:${versions.scalaStyle}"
-      testCompile 'junit:junit:${versions.junit}'
-      testCompile ('org.spockframework:spock-core:1.0-groovy-2.4') {
-          exclude group:'org.codehaus.groovy'
-      }
-  }
+    test {
+        dependsOn 'publishToMavenLocal'
 
-  sourceSets {
-      main {
-          resources {
-              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/main/resources")])
-          }
-          scala {
-              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/main/scala")])
-          }
-          groovy {
-              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/main/groovy")])
-              compileClasspath += files([sourceSets.main.scala.outputDir])
-          }
-      }
-      test {
-          groovy {
-              srcDirs +=files([file("$rootDir/gradle-scalastyle-plugin_source/src/test/groovy")])
-          }
-      }
-  }
+        testLogging {
+            showStandardStreams = true
+        }
+        systemProperty 'SCALA_VERSION', scalaDist
+        systemProperty 'PLUGIN_VERSION', version
+    }
 
-  compileGroovy.dependsOn(compileScala)
+    compileGroovy.dependsOn(compileScala)
 
-  // Required for Sonatype
-  task sourcesJar(type: Jar, dependsOn: classes) {
-      from sourceSets.main.allSource
-      classifier "sources"
-      extension "jar"
-  }
+    // Required for Sonatype
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        from sourceSets.main.allSource
+        classifier "sources"
+        extension "jar"
+    }
 
-  task javadocJar(type: Jar, dependsOn: javadoc) {
-      from javadoc.destinationDir
-      classifier "javadoc"
-      extension "jar"
-  }
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        from javadoc.destinationDir
+        classifier "javadoc"
+        extension "jar"
+    }
 
   configurations.create("sources")
   configurations.create("javadoc")
@@ -120,74 +128,73 @@ subprojects {
       extendsFrom configurations.javadoc
   }
 
-  // Used for testing the plugin in a local project.
-  task unversionedJar(type: Jar, dependsOn: 'jar') {
-      version = null
-      from sourceSets.main.output
-  }
+    // Used for testing the plugin in a local project.
+    task unversionedJar(type: Jar, dependsOn: 'jar') {
+        version = null
+        from sourceSets.main.output
+    }
 
-  task installPlugin(type: Copy, dependsOn: 'unversionedJar') {
-      def gradleInstallDir = gradle.gradleHomeDir
-      group = 'installation'
-      description = 'Installs the plugin jar in your gradle distribution.'
-      from "${buildDir}/libs/${unversionedJar.archiveName}"
-      into "/${gradleInstallDir}/lib/plugins"
-      doLast {
-          println "Installed in: ${gradleInstallDir}/lib/plugins as: ${unversionedJar.archiveName}"
-      }
-  }
+    task installPlugin(type: Copy, dependsOn: 'unversionedJar') {
+        def gradleInstallDir = gradle.gradleHomeDir
+        group = 'installation'
+        description = 'Installs the plugin jar in your gradle distribution.'
+        from "${buildDir}/libs/${unversionedJar.archiveName}"
+        into "/${gradleInstallDir}/lib/plugins"
+        doLast {
+            println "Installed in: ${gradleInstallDir}/lib/plugins as: ${unversionedJar.archiveName}"
+        }
+    }
 
-  task uninstallPlugin(type: Delete) {
-      def gradleInstallDir = gradle.gradleHomeDir
-      group = 'installation'
-      description = 'Removes the plugin from your gradle distribution.'
-      delete("/${gradleInstallDir}/lib/plugins/${unversionedJar.archiveName}")
-  }
+    task uninstallPlugin(type: Delete) {
+        def gradleInstallDir = gradle.gradleHomeDir
+        group = 'installation'
+        description = 'Removes the plugin from your gradle distribution.'
+        delete("/${gradleInstallDir}/lib/plugins/${unversionedJar.archiveName}")
+    }
 
-  artifacts {
-      sources(sourcesJar) {
-          type "jar"
-      }
-      javadoc(javadocJar) {
-          type "javadoc"
-      }
-  }
+    artifacts {
+        sources(sourcesJar) {
+            type "jar"
+        }
+        javadoc(javadocJar) {
+            type "javadoc"
+        }
+    }
 
-  publishing {
-      publications {
-          mavenJava(MavenPublication) {
-              from components.java
-              groupId = projectGroup
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                groupId = projectGroup
 
-              artifact sourcesJar {
-                  classifier "sources"
-              }
+                artifact sourcesJar {
+                    classifier "sources"
+                }
 
-              artifact javadocJar {
-                  classifier "javadoc"
-              }
-          }
-      }
-  }
+                artifact javadocJar {
+                    classifier "javadoc"
+                }
+            }
+        }
+    }
 
-  bintray {
+    bintray {
+        user = project.hasProperty('bintray_user') ? project.bintray_user : System.getenv('BINTRAY_USER')
+        key = project.hasProperty('bintray_key') ? project.bintray_key : System.getenv('BINTRAY_API_KEY')
 
-      user = project.hasProperty('bintray_user') ? project.bintray_user : System.getenv('BINTRAY_USER')
-      key = project.hasProperty('bintray_key') ? project.bintray_key : System.getenv('BINTRAY_API_KEY')
-
-      publications = ['mavenJava']
-      pkg {
-          repo = 'maven'
-          name = project.name
-          desc = 'gradle-scalastyle is a Gradle plugin for running the Scalastyle style checker.'
-          licenses = ['Apache-2.0']
-          labels = [version]
-          desc = 'Gradle plugin for scalaStyle'
-          websiteUrl = projectHomepage
-          issueTrackerUrl = 'https://github.com/ngbinh/gradle-scalastyle-plugin/issues'
-          vcsUrl = 'https://github.com/ngbinh/gradle-scalastyle-plugin.git'
-          licenses = ['Apache-2.0']
-          publicDownloadNumbers = true
-      }
-  }
+        publications = ['mavenJava']
+        pkg {
+            repo = 'maven'
+            name = project.name
+            desc = 'gradle-scalastyle is a Gradle plugin for running the Scalastyle style checker.'
+            licenses = ['Apache-2.0']
+            labels = [version]
+            desc = 'Gradle plugin for scalaStyle'
+            websiteUrl = projectHomepage
+            issueTrackerUrl = 'https://github.com/ngbinh/gradle-scalastyle-plugin/issues'
+            vcsUrl = 'https://github.com/ngbinh/gradle-scalastyle-plugin.git'
+            licenses = ['Apache-2.0']
+            publicDownloadNumbers = true
+        }
+    }
 }

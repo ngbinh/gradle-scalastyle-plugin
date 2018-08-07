@@ -1,0 +1,26 @@
+apply plugin: 'scala'
+apply plugin: 'scalaStyle'
+
+buildscript {
+  repositories {
+    jcenter() // only work after gradle 1.7
+    mavenLocal()
+  }
+
+  dependencies {
+    classpath 'org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.10:2.0.0'
+  }
+}
+
+scalaStyle {
+  config = file("scalastyle.xml")
+  verbose = false
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.scala-lang:scala-library:2.10.1'
+}
