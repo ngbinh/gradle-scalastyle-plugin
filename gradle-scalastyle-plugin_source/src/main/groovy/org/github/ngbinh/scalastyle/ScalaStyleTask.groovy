@@ -99,8 +99,16 @@ class ScalaStyleTask extends SourceTask {
                 def stopMs = System.currentTimeMillis()
                 if (!quiet) {
                     logger.info("Processed {} file(s)", outputResult.files())
-                    logger.warn("Found {} warnings", outputResult.warnings())
-                    logger.error("Found {} errors", outputResult.errors())
+                    if (outputResult.warnings() > 0) {
+                        logger.warn("Found {} warnings", outputResult.warnings())
+                    } else {
+                        logger.info("Found 0 warnings")
+                    }
+                    if (outputResult.errors() > 0) {
+                        logger.error("Found {} errors", outputResult.errors())
+                    } else {
+                        logger.info("Found 0 errors")   
+                    }
                     logger.info("Finished in {} ms", stopMs - startMs)
                 }
 
